@@ -4,67 +4,36 @@ public class BreadShop {
     private static int PRICE_OF_BREAD = 12;
 
     private final OutboundEvents events;
-    private final AccountRepository accountRepository = new AccountRepository();
+    final AccountRepository accountRepository;
+
+    private int outstandingQuantity = 0;
 
     public BreadShop(OutboundEvents events) {
         this.events = events;
+        accountRepository = new AccountRepository(events);
     }
 
     public void createAccount(int id) {
-        Account newAccount = new Account();
+        Account newAccount = new Account(id, events);
         accountRepository.addAccount(id, newAccount);
         events.accountCreatedSuccessfully(id);
     }
 
     public void deposit(int accountId, int creditAmount) {
-        Account account = accountRepository.getAccount(accountId);
-        if (account != null) {
-            final int newBalance = account.deposit(creditAmount);
-            events.newAccountBalance(accountId, newBalance);
-        } else {
-            events.accountNotFound(accountId);
-        }
+        accountRepository.deposit(accountId, creditAmount);
     }
 
     public void placeOrder(int accountId, int orderId, int amount) {
-        Account account = accountRepository.getAccount(accountId);
-        if (account != null) {
-            int cost = amount * PRICE_OF_BREAD;
-            if (account.getBalance() >= cost) {
-                account.addOrder(orderId, amount);
-                int newBalance = account.deposit(-cost);
-                events.orderPlaced(accountId, amount);
-                events.newAccountBalance(accountId, newBalance);
-            } else {
-                events.orderRejected(accountId);
-            }
-        } else {
-            events.accountNotFound(accountId);
-        }
+        outstandingQuantity += amount;
+        accountRepository.placeOrder(accountId, orderId, amount, PRICE_OF_BREAD);
     }
 
     public void cancelOrder(int accountId, int orderId) {
-        Account account = accountRepository.getAccount(accountId);
-        if (account == null)
-        {
-            events.accountNotFound(accountId);
-            return;
-        }
-
-        Integer cancelledQuantity = account.cancelOrder(orderId);
-        if (cancelledQuantity == null)
-        {
-            events.orderNotFound(accountId, orderId);
-            return;
-        }
-
-        int newBalance = account.deposit(cancelledQuantity * PRICE_OF_BREAD);
-        events.orderCancelled(accountId, orderId);
-        events.newAccountBalance(accountId, newBalance);
+        accountRepository.cancelOrder(accountId, orderId, PRICE_OF_BREAD);
     }
 
     public void placeWholesaleOrder() {
-        throw new UnsupportedOperationException("Implement me in Objective A");
+        events.placeWholesaleOrder(outstandingQuantity);
     }
 
     public void onWholesaleOrder(int quantity) {

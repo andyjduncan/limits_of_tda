@@ -120,7 +120,6 @@ public class BreadShopTest {
     }
 
     @Test
-    @Ignore("Objective A")
     public void an_empty_shop_places_an_empty_wholesale_order() {
         expectWholesaleOrder(0);
 
@@ -128,7 +127,6 @@ public class BreadShopTest {
     }
 
     @Test
-    @Ignore("Objective A")
     public void wholesale_orders_are_made_for_the_sum_of_the_quantities_of_outstanding_orders_in_one_account() {
         expectWholesaleOrder(40 + 55);
 
@@ -141,12 +139,24 @@ public class BreadShopTest {
     }
 
     @Test
-    @Ignore("Objective A")
     public void wholesale_orders_are_made_for_the_sum_of_the_quantities_of_outstanding_orders_across_accounts() {
         expectWholesaleOrder(40 + 55);
 
         createAccountAndPlaceOrder(accountIdOne, orderIdOne, 40);
         createAccountAndPlaceOrder(accountIdTwo, orderIdTwo, 55);
+
+        breadShop.placeWholesaleOrder();
+    }
+
+    @Test
+    public void cancelled_orders_are_not_included_in_the_wholesale_order() {
+        expectWholesaleOrder(40);
+
+        int balance = cost(40 + 55);
+        createAccountWithBalance(accountIdOne, balance);
+        placeOrder(accountIdOne, orderIdOne, 40, balance);
+        placeOrder(accountIdOne, orderIdTwo, 55, balance - cost(40));
+        cancelOrder(accountIdOne, orderIdTwo, balance + cost(55));
 
         breadShop.placeWholesaleOrder();
     }
